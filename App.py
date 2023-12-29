@@ -66,7 +66,8 @@ primer = """You are a helpful assistant.
             Only run mean() on specific columns, because some columns in df are non-numeric.
             Do not call st.pyplot without an argument, this will be deprecated soon.
             If date is involved, do not show the time component of dates, show just the calendar date. Use dt.date after groupby's to do this.
-            If you are asked to plot, create a line plot without markers, make sure it includes a title and axis names, and show the plot on the streamlit using st.pyplot."""
+            If you are asked to plot, create a line plot without markers, make sure it includes a title and axis names, and show the plot on the streamlit using st.pyplot.
+            If you have dates on the x-axis of a plot, make sure there are not too many dates showing and they are tilted, so they are not overlapping."""
 
 # Additional primer to be ended at the end of the prompt
 prompt_addition = """"""
