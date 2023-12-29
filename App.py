@@ -83,7 +83,7 @@ def main():
     st.title("SBA 504 Data Analysis with GPT")
 
     # Put general description of app
-    st.write("""This application can be used to query the SBA 504 histrical performance data. So far we only have data for originations
+    st.write("""This application can be used to query the SBA 504 historical performance data. So far we only have data for originations
                 since 2010. The underlying data is monthly dynamic data. Example queries include asking for historical CDR's and CPR's,
                 restricting to different populations.""")
 
