@@ -41,7 +41,7 @@ def load_dictionary(file_path):
     return dictionary
 
 # Set up gpt
-openai_api_key = os.getenv('OPENAI_API_KEY')
+openai_api_key = st.secrets["OPENAI_API_KEY"]
 client = OpenAI(api_key = openai_api_key)
 
 # Set primer to prepare gpt for queries
