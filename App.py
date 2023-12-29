@@ -10,12 +10,21 @@ import matplotlib.ticker as mtick
 from matplotlib.ticker import MaxNLocator
 import matplotlib.dates as mdates
 import seaborn as sns
+import zipfile
+import shutil
 pd.set_option('display.max_colwidth', 800)
 
 # Load loan-level data
 @st.cache_resource
 def load_loan_data(file_path):
-    df = pd.read_pickle(file_path)
+    extract_dir = 'zip'
+    with zipfile.ZipFile(file_path, 'r') as zip_ref:
+        zip_ref.extractall(extract_dir)
+    pkl_file_name = os.path.basename(file_path).replace('.zip', '.pkl')
+    pkl_file_path = os.path.join(extract_dir, pkl_file_name)
+    df = pd.read_pickle(pkl_file_path)
+    os.remove(pkl_file_path)
+    shutil.rmtree(extract_dir)
     df['Date'] = pd.to_datetime(df['Date'])
     df['ApprovalDate'] = pd.to_datetime(df['ApprovalDate'])
     return df
@@ -67,7 +76,7 @@ prompt_addition = """"""
 def main():
 
     # Load data only once, using the cached function
-    df = load_loan_data('sbadata_dyn_small.pkl')
+    df = load_loan_data('sbadata_dyn_small.zip')
     dictionary = load_dictionary('7a_504_foia-data-dictionary.xlsx')
 
     # Set streamlit title
