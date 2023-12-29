@@ -1,0 +1,3 @@
+Important thing to keep in mind is that by using an exec statement, there is a potential security risk if the user can get chat gpt 
+to write malicious code. This could be mitigated by restricting access to the web app to computers on the same network (can this be spoofed?)
+and also having a minimal environment.
