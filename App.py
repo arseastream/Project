@@ -12,6 +12,8 @@ import matplotlib.dates as mdates
 import seaborn as sns
 import zipfile
 import shutil
+import random
+import time
 pd.set_option('display.max_colwidth', 800)
 
 # Load loan-level data
@@ -60,6 +62,8 @@ primer = """You are a helpful assistant.
             Model CPR can be calculated by calculating HP using the average of the Model Prepayment column instead.
             Do not use plt.yticks().
             There is a streamlit that already exists, all results will be printed to this streamlit.
+            Do not use df.groupby().mean().
+            Only run mean() on specific columns, because some columns in df are non-numeric.
             For groupby, use a list if you want to refer to multiple columns.
             Refer to matplotlib.ticker as mtick if you use it.
             Do not call st.pyplot without an argument, this will be deprecated soon.
@@ -71,42 +75,71 @@ prompt_addition = """"""
 # Create streamlit app and take in queries
 def main():
 
+    # Set streamlit title
+    st.title("SBA 504 Data Analysis with GPT")
+
     # Load data only once, using the cached function
     df = load_loan_data('sbadata_dyn_small.zip')
     dictionary = load_dictionary('7a_504_foia-data-dictionary.xlsx')
 
-    # Set streamlit title
-    st.title("SBA 504 Data Analysis with GPT")
+    # Sidebar for navigation using radio buttons
+    page = st.sidebar.radio("Menu", ["Chat", "User Guide", "Dictionary"])
+
+    if page == "Chat":
+        display_chat(df)  
+    elif page == "User Guide":
+        display_user_guide()
+    elif page == "Dictionary":
+        display_dictionary(dictionary)  
+
+def display_chat(df):
+
+    # Global variables to pass to exec
+    exec_globals = {'df': df, 'pd': pd, 'plt': plt, 'mtick': mtick, 'mpl': mpl, 'st': st, 'np': np, 
+                    'MaxNLocator': MaxNLocator, 'mdates': mdates, 'sns': sns}
 
     # Initialize 'previous_interactions' in session_state if not present
     if 'previous_interactions' not in st.session_state:
         st.session_state['previous_interactions'] = ""
 
-    # Put general description of app
-    st.write("""This application can be used to query the SBA 504 historical performance data. So far we only have data for originations
-                since 2010. The underlying data is monthly dynamic data. Example queries include asking for historical CDR's and CPR's,
-                restricting to different populations.""")
+    # Initialize chat history
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
 
-    # Create tabs in Streamlit
-    tab1, tab2, tab3 = st.tabs(["Queries", "User Guide", "Dictionary"])
+    # Display chat messages from history on app rerun
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            if message["role"] == "user" or message["content"] == "Please try a different query.":
+                st.markdown(message["content"])
+            else:
+                exec(message["content"], exec_globals)
+                with st.expander("Python Script"):
+                    st.code(message["content"], language='python')
 
-    # Queries tab
-    with tab1:
+    # Reset conversation
+    if st.button("Restart Conversation"):
+        st.session_state['previous_interactions'] = ""
+        st.session_state.messages = []
 
-        # Reset conversation
-        if st.button("Restart Conversation"):
-            st.session_state['previous_interactions'] = ""
+    # Accept user input
+    if prompt := st.chat_input("Type your prompt here..."):
 
-        # Set up user input. Make sure it ends in a period because there will be more after
-        user_prompt = st.text_area("Enter your prompt:", "Type your prompt here...")
-        if not user_prompt.endswith('.'):
-            user_prompt += '.'
+        # Make sure prompt ends with period
+        if not prompt.endswith('.'):
+            prompt += '.'
 
-        # If button is clicked
-        if st.button("Submit"):
+        # Display user message in chat message container
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        # Add user message to chat history
+        st.session_state.messages.append({"role": "user", "content": prompt})
+
+        # Only make API call if there is a prompt
+        if prompt:
 
             # Create full prompt
-            full_prompt = build_prompt(st.session_state['previous_interactions'], user_prompt + prompt_addition)
+            full_prompt = build_prompt(st.session_state['previous_interactions'], prompt + prompt_addition)
             
             # Set up counters so app tries request max_attempts, in case gpt returns bad code
             max_attempts = 5
@@ -122,17 +155,20 @@ def main():
                     response = response.replace("```python", "")
                     response = response.replace("```", "")
 
-                    # Execute the script
-                    exec_globals = {'df': df, 'pd': pd, 'plt': plt, 'mtick': mtick, 'mpl': mpl, 'st': st, 'np': np, 
-                                    'MaxNLocator': MaxNLocator, 'mdates': mdates, 'sns': sns}
-                    exec(response, exec_globals)
+                    # Display assistant response in chat message container
+                    with st.chat_message("assistant"):
 
-                    # Print the script from GPT
-                    with st.expander("Python Script"):
-                        st.code(response, language='python')
+                        # Execute the script
+                        exec_globals = {'df': df, 'pd': pd, 'plt': plt, 'mtick': mtick, 'mpl': mpl, 'st': st, 'np': np, 
+                                        'MaxNLocator': MaxNLocator, 'mdates': mdates, 'sns': sns}
+                        exec(response, exec_globals)
+
+                        # Print the script from GPT
+                        with st.expander("Python Script"):
+                            st.code(response, language='python')
 
                     # Update previous interactions with the latest response
-                    st.session_state['previous_interactions'] += "\nUser: " + user_prompt + prompt_addition + "\nGPT: " + response
+                    st.session_state['previous_interactions'] += "\nUser: " + prompt + prompt_addition + "\nGPT: " + response
                     
                     # Set success if no errors
                     success = True
@@ -143,40 +179,51 @@ def main():
 
             # Requests a different query if gpt keeps giving bad code
             if not success:
-                st.write("Please try a different query.")
+                response = "Please try a different query."
+                st.write(response)
 
-    # User Guide tab
-    with tab2:
+            # Add assistant response to chat history
+            st.session_state.messages.append({"role": "assistant", "content": response})
 
-        # Write tips for best query writing
-        st.markdown("""
-        **Tips For Writing Prompts**
-        1. Write in full sentances
-        2. Use exact variable names and values from the dictionary  
-        3. Be as specific in your request as you can
-        4. Remember that the code is dealing with a table  
-        5. If you don't get what you want initially, try resubmitting the query
+def display_dictionary(dictionary):
 
-        **Example Queries**
-        1. Plot the CDR by Date
-        2. Plot the CPR by Loan Age
-        3. Plot the CPR by Loan Age for the different BusinessType's. Round Loan Age by 12.  
-        4. Plot the CDR by Loan Age when the Date was between 2015 and 2018. Restrict to where the record count is greater than 15000. Please also plot the record count by Loan Age on the secondary axis as bars. 
-        5. Plot the model vs actual CPR by Date
-        """)
+    # Header
+    st.header("Dictionary")
 
-    # Dictionary tab
-    with tab3:
+    # Write dictionary
+    dictionary_copy = dictionary.copy()
+    dictionary_copy['Definition'] = dictionary_copy['Definition'].str.replace('\n', '<br>', regex=False)
+    html = dictionary_copy.to_html(index=False, escape=False)
+    html = html.replace('<thead>', '<thead style="text-align: left;">')
+    html = html.replace('<th>', '<th style="text-align: left;">')
+    st.markdown(html, unsafe_allow_html=True)
 
-        # Header
-        st.header("Dictionary")
+def display_user_guide():
 
-        # Write dictionary
-        dictionary['Definition'] = dictionary['Definition'].str.replace('\n', '<br>', regex=False)
-        html = dictionary.to_html(index=False, escape=False)
-        html = html.replace('<thead>', '<thead style="text-align: left;">')
-        html = html.replace('<th>', '<th style="text-align: left;">')
-        st.markdown(html, unsafe_allow_html=True)
+    # Header
+    st.header("User Guide")
+
+    # Put general description of app
+    st.write("""This application can be used to query the SBA 504 historical performance data. So far we only have data for originations
+                since 2010. The underlying data is monthly dynamic data. Example queries include asking for historical CDR's and CPR's,
+                restricting to different populations.""")
+
+    # Write tips for best query writing
+    st.markdown("""
+    **Tips For Writing Prompts**
+    1. Write in full sentances
+    2. Use exact variable names and values from the dictionary  
+    3. Be as specific in your request as you can
+    4. Remember that the code is dealing with a table  
+    5. If you don't get what you want initially, try resubmitting the query
+
+    **Example Queries**
+    1. Plot the CDR by Date
+    2. Plot the CPR by Loan Age
+    3. Plot the CPR by Loan Age for the different BusinessType's. Round Loan Age by 12.  
+    4. Plot the CDR by Loan Age when the Date was between 2015 and 2018. Restrict to where the record count is greater than 15000. Please also plot the record count by Loan Age on the secondary axis as bars. 
+    5. Plot the model vs actual CPR by Date
+    """)
 
 # Submit query to gpt
 def make_api_call(user_prompt):
