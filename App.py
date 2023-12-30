@@ -135,7 +135,7 @@ def display_chat(df):
     if prompt := st.chat_input("Type your prompt here..."):
 
         # Make sure prompt ends with period
-        if not prompt.endswith('.'):
+        if not (prompt.endswith('.') or prompt.endswith('?') or prompt.endswith('!')):
             prompt += '.'
 
         # Display user message in chat message container
