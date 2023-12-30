@@ -36,11 +36,24 @@ def load_loan_data(file_path):
 def load_dictionary(file_path):
     dictionary = pd.read_excel(file_path)
     new_rows = pd.DataFrame({
-        'Field Name': ['LoanID', 'Date'],
-        'Definition': ['Unique identifier for each loan', 'Observation month']
+        'Field Name': ['LoanID', 'Date', 'MaturityDate', 'Prepayment', 'ChargeOff', 'Loan Age', 'Obs Market Rate', 'Orig Market Rate',
+                       'Incentive', 'Model Prepayment'],
+        'Definition': ['Unique identifier for each loan', 
+                       'Observation month',
+                       'Maturity date interpretted from ApprovalDate and TermInMonths',
+                       '1 if prepaid on this record, 0 otherwise',
+                       '1 if charged off on this record, 0 otherwise',
+                       'Months from ApprovalDate to observation date',
+                       'Average SBA 504 25 Yr Term new origination interest rate on observation date',
+                       'Average SBA 504 25 Yr Term new origination interest rate on ApprovalDate',
+                       'Orig Market Rate - Obs Market Rate',
+                       'Monthly probability of prepayment from xgboost model using Loan Age, Incentive, and GrossApproval'],
     })
     dictionary = pd.concat([new_rows, dictionary]).reset_index(drop=True)
-    return dictionary
+    columns_to_keep = ['Date', 'LoanID', 'ThirdPartyDollars', 'GrossApproval', 'ApprovalDate', 'DeliveryMethod', 'subpgmdesc', 'TermInMonths',
+                   'NaicsDescription', 'ProjectState', 'BusinessType', 'BusinessAge', 'JobsSupported', 'MaturityDate', 'Prepayment', 'ChargeOff',
+                   'Loan Age', 'Obs Market Rate', 'Orig Market Rate', 'Incentive', 'Model Prepayment']
+    return dictionary[dictionary['Field Name'].isin(columns_to_keep)]
 
 # Set up gpt
 openai_api_key = st.secrets["OPENAI_API_KEY"]
@@ -209,7 +222,8 @@ def display_user_guide():
     st.header("User Guide")
 
     # Put general description of app
-    st.write("""This application can be used to query the SBA 504 historical performance data. So far we only have data for originations
+    st.write("""This application can be used to query the SBA 504 historical performance data. This data is publically available and 
+                furnished quarterly by the SBA. The data we have is as of September 2023. So far we only have data for originations
                 since 2010. The underlying data is monthly dynamic data. Example queries include asking for historical CDR's and CPR's,
                 restricting to different populations.""")
 
