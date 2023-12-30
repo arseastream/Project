@@ -85,6 +85,7 @@ def main():
     # Sidebar for navigation using radio buttons
     page = st.sidebar.radio("Menu", ["Chat", "User Guide", "Dictionary"])
 
+    # Choose page
     if page == "Chat":
         display_chat(df)  
     elif page == "User Guide":
@@ -92,6 +93,7 @@ def main():
     elif page == "Dictionary":
         display_dictionary(dictionary)  
 
+# Create chat page
 def display_chat(df):
 
     # Global variables to pass to exec
@@ -186,6 +188,7 @@ def display_chat(df):
         st.session_state.messages = []
         st.experimental_rerun()
 
+# Display dictionary page
 def display_dictionary(dictionary):
 
     # Header
@@ -199,6 +202,7 @@ def display_dictionary(dictionary):
     html = html.replace('<th>', '<th style="text-align: left;">')
     st.markdown(html, unsafe_allow_html=True)
 
+# Display user guide page
 def display_user_guide():
 
     # Header
