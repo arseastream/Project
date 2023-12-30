@@ -240,7 +240,7 @@ def display_user_guide():
     1. Plot the CDR by Date
     2. Plot the CPR by Loan Age
     3. Plot the CPR by Loan Age for the different BusinessType's. Round Loan Age by 12.  
-    4. Plot the CDR by Loan Age when the Date was between 2015 and 2018. Restrict to where the record count is greater than 15000. Please also plot the record count by Loan Age on the secondary axis as bars. 
+    4. Plot the CDR by Loan Age when the Date was between 2015 and 2018. Restrict to where the record count is greater than 1500. Please also plot the record count by Loan Age on the secondary axis as bars. 
     5. Plot the model vs actual CPR by Date
     """)
 
