@@ -116,11 +116,6 @@ def display_chat(df):
                 with st.expander("Python Script"):
                     st.code(message["content"], language='python')
 
-    # Reset conversation
-    if st.button("Restart Conversation"):
-        st.session_state['previous_interactions'] = ""
-        st.session_state.messages = []
-
     # Accept user input
     if prompt := st.chat_input("Type your prompt here..."):
 
@@ -184,6 +179,12 @@ def display_chat(df):
 
             # Add assistant response to chat history
             st.session_state.messages.append({"role": "assistant", "content": response})
+
+    # Reset conversation button
+    if st.button("Restart Conversation"):
+        st.session_state['previous_interactions'] = ""
+        st.session_state.messages = []
+        st.experimental_rerun()
 
 def display_dictionary(dictionary):
 
