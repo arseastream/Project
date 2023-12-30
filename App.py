@@ -55,17 +55,14 @@ primer = """You are a helpful assistant.
             CPR is calculated as CPR = 1 - (1 - HP) ^ 12, where HP equals the average of the Prepayment column.
             CDR is calculated as CDR = 1 - (1 - HC) ^ 12, where HC equals the average of the ChargeOff column.
             When displaying CDR or CPR in a plot or table, format the CDR or CPR as a percentage to two decimal points.
+            If you group by a date variable, transform the date variable afterwards using dt.date.
             There is a column called Model Prepayment that contains a model probability that Prepayment is 1.
             Model CPR can be calculated by calculating HP using the average of the Model Prepayment column instead.
             Do not use plt.yticks().
             There is a streamlit that already exists, all results will be printed to this streamlit.
-            Make sure to use groupby if appropriate.
-            Do not use df.groupby().mean().
             For groupby, use a list if you want to refer to multiple columns.
             Refer to matplotlib.ticker as mtick if you use it.
-            Only run mean() on specific columns, because some columns in df are non-numeric.
             Do not call st.pyplot without an argument, this will be deprecated soon.
-            If date is involved, use dt.date after groupby to not show the time component of dates.
             If you are asked to plot, create a line plot without markers, make sure it includes a title and axis names, and show the plot on the streamlit using st.pyplot."""
 
 # Additional primer to be ended at the end of the prompt
@@ -81,6 +78,10 @@ def main():
     # Set streamlit title
     st.title("SBA 504 Data Analysis with GPT")
 
+    # Initialize 'previous_interactions' in session_state if not present
+    if 'previous_interactions' not in st.session_state:
+        st.session_state['previous_interactions'] = ""
+
     # Put general description of app
     st.write("""This application can be used to query the SBA 504 historical performance data. So far we only have data for originations
                 since 2010. The underlying data is monthly dynamic data. Example queries include asking for historical CDR's and CPR's,
@@ -92,6 +93,10 @@ def main():
     # Queries tab
     with tab1:
 
+        # Reset conversation
+        if st.button("Restart Conversation"):
+            st.session_state['previous_interactions'] = ""
+
         # Set up user input. Make sure it ends in a period because there will be more after
         user_prompt = st.text_area("Enter your prompt:", "Type your prompt here...")
         if not user_prompt.endswith('.'):
@@ -99,6 +104,9 @@ def main():
 
         # If button is clicked
         if st.button("Submit"):
+
+            # Create full prompt
+            full_prompt = build_prompt(st.session_state['previous_interactions'], user_prompt + prompt_addition)
             
             # Set up counters so app tries request max_attempts, in case gpt returns bad code
             max_attempts = 5
@@ -108,8 +116,9 @@ def main():
             # Keep trying until max attempts
             while attempts < max_attempts and not success:
                 try:
+
                     # Make a request to the OpenAI API
-                    response = make_api_call(user_prompt)
+                    response = make_api_call(full_prompt)
                     response = response.replace("```python", "")
                     response = response.replace("```", "")
 
@@ -121,6 +130,9 @@ def main():
                     # Print the script from GPT
                     with st.expander("Python Script"):
                         st.code(response, language='python')
+
+                    # Update previous interactions with the latest response
+                    st.session_state['previous_interactions'] += "\nUser: " + user_prompt + prompt_addition + "\nGPT: " + response
                     
                     # Set success if no errors
                     success = True
@@ -172,10 +184,14 @@ def make_api_call(user_prompt):
         model="gpt-4-1106-preview",
         messages=[
             {"role": "system", "content": primer},
-            {"role": "user", "content": user_prompt + prompt_addition}
+            {"role": "user", "content": user_prompt}
         ]
     )
     return response.choices[0].message.content
+
+# Function to concatenate previous interactions with the new prompt
+def build_prompt(previous_interactions, new_user_input):
+    return previous_interactions + "\n" + new_user_input
 
 if __name__ == "__main__":
     main()
