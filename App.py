@@ -169,8 +169,6 @@ def display_chat(df):
                     with st.chat_message("assistant"):
 
                         # Execute the script
-                        exec_globals = {'df': df, 'pd': pd, 'plt': plt, 'mtick': mtick, 'mpl': mpl, 'st': st, 'np': np, 
-                                        'MaxNLocator': MaxNLocator, 'mdates': mdates, 'sns': sns}
                         exec(response, exec_globals)
 
                         # Print the script from GPT
@@ -185,6 +183,7 @@ def display_chat(df):
 
                 except Exception as e:
                     # st.error(f"An error occurred: {e}")
+                    st.write('Retrying')
                     attempts += 1
 
             # Requests a different query if gpt keeps giving bad code
@@ -242,6 +241,8 @@ def display_user_guide():
     3. Plot the CPR by Loan Age for the different BusinessType's. Round Loan Age by 12.  
     4. Plot the CDR by Loan Age when the Date was between 2015 and 2018. Restrict to where the record count is greater than 1500. Please also plot the record count by Loan Age on the secondary axis as bars. 
     5. Plot the model vs actual CPR by Date
+    6. Get the model and actual CPR curves by Incentive for when Date was in 2016 and when Date was in 2023. Round Incentive to the nearest
+                .25. Restrict to where Loan Age is between 60 and 84. Plot all four curves on the same graph.
     """)
 
 # Submit query to gpt
