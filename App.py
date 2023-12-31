@@ -29,7 +29,8 @@ def load_loan_data(file_path):
     shutil.rmtree(extract_dir)
     df['Date'] = pd.to_datetime(df['Date'])
     df['ApprovalDate'] = pd.to_datetime(df['ApprovalDate'])
-    return df
+    df_saved = df.copy()
+    return df, df_saved
 
 # Load dictionary
 @st.cache_resource
@@ -64,23 +65,26 @@ primer = """You are a helpful assistant.
             I will ask you for python scripts. 
             These scripts will deal with a dataframe called df. Do not edit the original df dataframe.
             This dataframe has columns Date, LoanID, Prepayment, ChargeOff, and Loan Age, amongst other columns.
+            There is a non-numeric column BusinessAge in the dataframe.
             Prepayment and ChargeOff are either 1 or 0.
             Only return the python script, do not return any text explanations.
             Do not return any imports, assume that I have already imported all necessary packages.
             CPR is calculated as CPR = 1 - (1 - HP) ^ 12, where HP equals the average of the Prepayment column.
             CDR is calculated as CDR = 1 - (1 - HC) ^ 12, where HC equals the average of the ChargeOff column.
             When displaying CDR or CPR in a plot or table, format the CDR or CPR as a percentage to two decimal points.
-            If you group by a date variable, transform the date variable afterwards using dt.date.
+            After using groupby, check if the groupby variable has "Date" in the name. If it does, transform this variable in the groupby result using ".dt.date".
             There is a column called Model Prepayment that contains a model probability that Prepayment is 1.
             Model CPR can be calculated by calculating HP using the average of the Model Prepayment column instead.
             Do not use plt.yticks().
             There is a streamlit that already exists, all results will be printed to this streamlit.
             Do not use df.groupby().mean().
             Only run mean() on specific columns, because some columns in df are non-numeric.
-            For groupby, use a list if you want to refer to multiple columns.
+            When using groupby(), use a list to refer to multiple columns, do not use a tuple. For example, use `df.groupby('Column1')[['Column2', 'Column3']].mean()`.
             Refer to matplotlib.ticker as mtick if you use it.
             Do not call st.pyplot without an argument, this will be deprecated soon.
-            If you are asked to plot, create a line plot without markers, make sure it includes a title and axis names, and show the plot on the streamlit using st.pyplot."""
+            If you are asked to plot, create a line plot without markers, make sure it includes a title and axis names, and show the plot on the streamlit using st.pyplot.
+            If you plot, make sure the x-axis labels are rotated if they are long, and use ha="right".
+            If you plot actuals, plot them in blue. If you plot model, plot them in red."""
 
 # Additional primer to be ended at the end of the prompt
 prompt_addition = """"""
@@ -92,7 +96,7 @@ def main():
     st.title("SBA 504 Data Analysis with GPT")
 
     # Load data only once, using the cached function
-    df = load_loan_data('sbadata_dyn_small.zip')
+    df, df_saved = load_loan_data('sbadata_dyn_small.zip')
     dictionary = load_dictionary('7a_504_foia-data-dictionary.xlsx')
 
     # Sidebar for navigation using radio buttons
@@ -100,14 +104,14 @@ def main():
 
     # Choose page
     if page == "Chat":
-        display_chat(df)  
+        display_chat(df, df_saved)  
     elif page == "User Guide":
         display_user_guide()
     elif page == "Dictionary":
         display_dictionary(dictionary)  
 
 # Create chat page
-def display_chat(df):
+def display_chat(df, df_saved):
 
     # Global variables to pass to exec
     exec_globals = {'df': df, 'pd': pd, 'plt': plt, 'mtick': mtick, 'mpl': mpl, 'st': st, 'np': np, 
@@ -198,6 +202,7 @@ def display_chat(df):
     if st.button("Restart Conversation"):
         st.session_state['previous_interactions'] = ""
         st.session_state.messages = []
+        df = df_saved.copy()
         st.experimental_rerun()
 
 # Display dictionary page
