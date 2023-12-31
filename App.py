@@ -12,8 +12,8 @@ import matplotlib.dates as mdates
 import seaborn as sns
 import zipfile
 import shutil
-import random
-import time
+import xgboost as xgb
+from sklearn.model_selection import train_test_split
 pd.set_option('display.max_colwidth', 800)
 
 # Load loan-level data
@@ -84,7 +84,7 @@ primer = """You are a helpful assistant.
             Do not call st.pyplot without an argument, this will be deprecated soon.
             If you are asked to plot, create a line plot without markers, make sure it includes a title and axis names, and show the plot on the streamlit using st.pyplot.
             If you plot, make sure the x-axis labels are rotated if they are long, and use ha="right".
-            If you plot actuals, plot them in blue. If you plot model, plot them in red.
+            If you plot actuals, plot them in shades of blue. If you plot model, plot them in shades of red.
             If you need to calculate the difference between two dates in months, do this directly using dt.year and dt.month.
             If the user asks what you are able to do, write to the streamlit that you are able to transform natural language queries into python code that can be used to query a dataframe
             of SBA 504 historical data, and potentially create plots and other graphics.
@@ -120,8 +120,8 @@ def main():
 def display_chat(df, df_saved):
 
     # Global variables to pass to exec
-    exec_globals = {'df': df, 'pd': pd, 'plt': plt, 'mtick': mtick, 'mpl': mpl, 'st': st, 'np': np, 
-                    'MaxNLocator': MaxNLocator, 'mdates': mdates, 'sns': sns}
+    exec_globals = {'df': df, 'pd': pd, 'plt': plt, 'mtick': mtick, 'mpl': mpl, 'st': st, 'np': np, 'xgb': xgb,
+                    'MaxNLocator': MaxNLocator, 'mdates': mdates, 'sns': sns, 'train_test_split': train_test_split}
 
     # Initialize 'previous_interactions' in session_state if not present
     if 'previous_interactions' not in st.session_state:
@@ -254,6 +254,9 @@ def display_user_guide():
     5. Plot the model vs actual CPR by Date
     6. Get the model and actual CPR curves by Incentive for when Date was in 2016 and when Date was in 2023. Round Incentive to the nearest
                 .25. Restrict to where Loan Age is between 60 and 84. Plot all four curves on the same graph.
+    7. Create a simple xgboost model to predict ChargeOff. Use Loan Age, Incentive, and GrossApproval. Use this model to make a ChargeOff probability prediction for each row in the table. 
+                Plot model vs actual CDR by Date. Use the model prediction to calculate model CDR.
+    8. Use xgboost to rank the importance of these variables for predicting ChargeOff in a plot - Loan Age, Incentive, Orig Market Rate, NaicsDescription, BusinessType, BusinessAge, and GrossApproval.
     """)
 
 # Submit query to gpt
