@@ -256,7 +256,6 @@ def display_user_guide():
                 .25. Restrict to where Loan Age is between 60 and 84. Plot all four curves on the same graph.
     7. Create a simple xgboost model to predict ChargeOff. Use Loan Age, Incentive, and GrossApproval. Use this model to make a ChargeOff probability prediction for each row in the table. 
                 Plot model vs actual CDR by Date. Use the model prediction to calculate model CDR.
-    8. Use xgboost to rank the importance of these variables for predicting ChargeOff in a plot - Loan Age, Incentive, Orig Market Rate, NaicsDescription, BusinessType, BusinessAge, and GrossApproval.
     """)
 
 # Submit query to gpt
